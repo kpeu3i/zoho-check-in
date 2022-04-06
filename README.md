@@ -14,7 +14,7 @@ The following CLI flags are allowed:
   -p string
     	zoho password
   -c string
-    	company identifier
+    	zoho company identifier
   -e string
     	chrome executable path
   -h	headless mode

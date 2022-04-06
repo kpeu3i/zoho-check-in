@@ -173,7 +173,7 @@ func checkIn(ctx context.Context, companyID string, screenshotsPath string) erro
 				return err
 			}
 
-			log.Println("Check-in: navigated to attendance url")
+			log.Println("Check-in: attendance page loaded")
 
 			err = chromedp.Sleep(5 * time.Second).Do(ctx)
 			if err != nil {
@@ -396,12 +396,12 @@ func initConfig() (Config, error) {
 		}
 	}
 
-	flag.StringVar(&config.Browser.ExecPath, "e", config.Browser.ExecPath, "chrome executable path")
-	flag.StringVar(&config.Browser.ScreenshotsPath, "s", config.Browser.ScreenshotsPath, "screenshots path")
-	flag.BoolVar(&config.Browser.Headless, "h", config.Browser.Headless, "headless mode")
-	flag.StringVar(&config.Zoho.Username, "u", config.Zoho.Username, "zoho username")
-	flag.StringVar(&config.Zoho.Password, "p", config.Zoho.Password, "zoho password")
-	flag.StringVar(&config.Zoho.CompanyID, "c", config.Zoho.CompanyID, "company identifier")
+	flag.StringVar(&config.Browser.ExecPath, "e", config.Browser.ExecPath, "Chrome executable path")
+	flag.StringVar(&config.Browser.ScreenshotsPath, "s", config.Browser.ScreenshotsPath, "Screenshots path")
+	flag.BoolVar(&config.Browser.Headless, "h", config.Browser.Headless, "Headless mode")
+	flag.StringVar(&config.Zoho.Username, "u", config.Zoho.Username, "Zoho username")
+	flag.StringVar(&config.Zoho.Password, "p", config.Zoho.Password, "Zoho password")
+	flag.StringVar(&config.Zoho.CompanyID, "c", config.Zoho.CompanyID, "Zoho company identifier")
 
 	flag.Parse()
 

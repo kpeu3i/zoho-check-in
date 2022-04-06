@@ -11,6 +11,8 @@ RUN CGO_ENABLED=0 go build -o zpcheckin
 
 FROM zenika/alpine-chrome:latest
 
+USER root
+
 COPY --from=build /build/zpcheckin /usr/local/bin/zpcheckin
 
 ENTRYPOINT ["zpcheckin"]
