@@ -10,14 +10,14 @@ Supported sign in methods:
 The following CLI flags are allowed:
 ```
   -u string
-    	zoho username
+    	Zoho username
   -p string
-    	zoho password
+    	Zoho password
   -c string
-    	zoho company identifier
+    	Zzoho company identifier
   -e string
-    	chrome executable path
-  -h	headless mode
+    	Chrome executable path
+  -h	Headless mode
   -s string
-    	screenshots path
+    	Ыscreenshots path
 ```
