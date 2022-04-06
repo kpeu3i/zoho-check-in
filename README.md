@@ -19,5 +19,5 @@ The following CLI flags are allowed:
     	Chrome executable path
   -h	Headless mode
   -s string
-    	Ыscreenshots path
+    	Screenshots path
 ```
