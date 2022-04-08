@@ -18,6 +18,7 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/joeshaw/envdecode"
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 )
 
 func main() {
@@ -26,7 +27,26 @@ func main() {
 		log.Panic(err)
 	}
 
-	err = initScreenshotsPath(config.Browser.ScreenshotsPath)
+	if config.Schedule == "" {
+		err = run(config)
+		if err != nil {
+			log.Panic(err)
+		}
+	} else {
+		err = schedule(config.Schedule, func() {
+			err = run(config)
+			if err != nil {
+				log.Panic(err)
+			}
+		})
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+}
+
+func run(config Config) error {
+	err := initScreenshotsPath(config.Browser.ScreenshotsPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,6 +79,35 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+
+	return nil
+}
+
+func schedule(schedule string, job func()) error {
+	c := cron.New(
+		cron.WithChain(
+			cron.SkipIfStillRunning(cron.DefaultLogger),
+		),
+		cron.WithLocation(time.UTC),
+	)
+
+	eid, err := c.AddFunc(schedule, job)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.AddFunc(schedule, func() {
+		log.Printf("Launch scheduled for: %s", c.Entry(eid).Schedule.Next(time.Now().UTC()))
+	})
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Launch scheduled for: %s", c.Entry(eid).Schedule.Next(time.Now().UTC()))
+
+	c.Run()
+
+	return nil
 }
 
 func initBrowserContext(execPath string, headless bool) (context.Context, context.CancelFunc) {
@@ -402,6 +451,7 @@ func initConfig() (Config, error) {
 	flag.StringVar(&config.Zoho.Username, "u", config.Zoho.Username, "Zoho username")
 	flag.StringVar(&config.Zoho.Password, "p", config.Zoho.Password, "Zoho password")
 	flag.StringVar(&config.Zoho.CompanyID, "c", config.Zoho.CompanyID, "Zoho company identifier")
+	flag.StringVar(&config.Schedule, "x", config.Schedule, "Schedule of check-in launches (CRON format, UTC time)")
 
 	flag.Parse()
 

@@ -7,4 +7,6 @@ require (
 	github.com/chromedp/chromedp v0.8.0
 	github.com/joeshaw/envdecode v0.0.0-20200121155833-099f1fc765bd
 	github.com/joho/godotenv v1.4.0
+	github.com/robfig/cron/v3 v3.0.1
+	golang.org/x/sys v0.0.0-20210514084401-e8d321eab015 // indirect
 )

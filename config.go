@@ -13,6 +13,7 @@ type Config struct {
 		Password  string `env:"ZP_ZOHO_PASSWORD"`
 		CompanyID string `env:"ZP_ZOHO_COMPANY_ID"`
 	}
+	Schedule string `env:"ZP_SCHEDULE"`
 }
 
 func (c *Config) Validate() error {

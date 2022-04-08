@@ -14,10 +14,12 @@ The following CLI flags are allowed:
   -p string
     	Zoho password
   -c string
-    	Zzoho company identifier
+    	Zoho company identifier
   -e string
     	Chrome executable path
   -h	Headless mode
   -s string
     	Screenshots path
+  -x string
+    	Schedule of check-in launches (CRON format, UTC time)
 ```
