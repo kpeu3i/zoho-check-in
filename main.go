@@ -15,10 +15,17 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/chromedp"
 	"github.com/joeshaw/envdecode"
 	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
+)
+
+const (
+	browserContextTimeout = 10 * time.Minute
+	browserWindowWidth    = 1440
+	browserWindowHeight   = 900
 )
 
 func main() {
@@ -97,7 +104,7 @@ func schedule(schedule string, job func()) error {
 	}
 
 	_, err = c.AddFunc(schedule, func() {
-		log.Printf("Launch scheduled for: %s", c.Entry(eid).Schedule.Next(time.Now().UTC()))
+		log.Printf("Next launch scheduled for: %s", c.Entry(eid).Schedule.Next(time.Now().UTC()))
 	})
 	if err != nil {
 		return err
@@ -119,8 +126,8 @@ func initBrowserContext(execPath string, headless bool) (context.Context, contex
 		chromedp.NoSandbox,
 		chromedp.NoFirstRun,
 		chromedp.NoDefaultBrowserCheck,
-		chromedp.WindowSize(1440, 900),
 		chromedp.DisableGPU,
+		chromedp.WindowSize(browserWindowWidth, browserWindowHeight),
 		chromedp.Flag("disable-software-rasterizer", true),
 		chromedp.Flag("disable-dev-shm-usage", true),
 	)
@@ -129,7 +136,7 @@ func initBrowserContext(execPath string, headless bool) (context.Context, contex
 		opts = append(opts, chromedp.Headless)
 	}
 
-	ctx, cancel1 := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel1 := context.WithTimeout(context.Background(), browserContextTimeout)
 
 	ctx, cancel2 := chromedp.NewExecAllocator(
 		ctx,
@@ -162,7 +169,13 @@ func login(ctx context.Context, username, password string, screenshotsPath strin
 
 	log.Println("Login: started")
 
+	geolocationPermissionDescriptor := browser.PermissionDescriptor{
+		Name: browser.PermissionTypeGeolocation.String(),
+	}
+
 	err := chromedp.Run(ctx,
+		browser.SetPermission(&geolocationPermissionDescriptor, browser.PermissionSettingDenied),
+
 		chromedp.Navigate("https://accounts.zoho.eu/signin?servicename=zohopeople"),
 		chromedp.CaptureScreenshot(&screenshotsData[0]),
 
@@ -217,7 +230,16 @@ func checkIn(ctx context.Context, companyID string, screenshotsPath string) erro
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			var checkInButtonHTML string
 
-			err := chromedp.Navigate(attendanceURL).Do(ctx)
+			geolocationPermissionDescriptor := browser.PermissionDescriptor{
+				Name: browser.PermissionTypeGeolocation.String(),
+			}
+
+			err := browser.SetPermission(&geolocationPermissionDescriptor, browser.PermissionSettingDenied).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.Navigate(attendanceURL).Do(ctx)
 			if err != nil {
 				return err
 			}
@@ -267,49 +289,6 @@ func checkIn(ctx context.Context, companyID string, screenshotsPath string) erro
 			}
 
 			err = chromedp.CaptureScreenshot(&screenshotsData[1]).Do(ctx)
-			if err != nil {
-				return err
-			}
-
-			err = chromedp.OuterHTML("#ZPAtt_check_in_out", &checkInButtonHTML, chromedp.NodeVisible).Do(ctx)
-			if err != nil {
-				return err
-			}
-
-			log.Println("Check-in: check-in button HTML extracted")
-
-			isCheckedIn, err = parseCheckInState(checkInButtonHTML)
-			if err != nil {
-				return err
-			}
-
-			if isCheckedIn {
-				log.Println("Check-in: checked-in")
-
-				return nil
-			}
-
-			// **************************************
-			err = chromedp.Focus("#ZPAtt_check_in_out", chromedp.NodeVisible).Do(ctx)
-			if err != nil {
-				return err
-			}
-
-			log.Println("Check-in: check-in button focused")
-
-			err = chromedp.Click("#ZPAtt_check_in_out", chromedp.NodeVisible).Do(ctx)
-			if err != nil {
-				return err
-			}
-
-			log.Println("Check-in: check-in button clicked")
-
-			err = chromedp.Sleep(5 * time.Second).Do(ctx)
-			if err != nil {
-				return err
-			}
-
-			err = chromedp.CaptureScreenshot(&screenshotsData[2]).Do(ctx)
 			if err != nil {
 				return err
 			}
