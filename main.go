@@ -72,6 +72,7 @@ func run(config Config) error {
 		ctx,
 		config.Zoho.Username,
 		config.Zoho.Password,
+		config.Zoho.CompanyID,
 		config.Browser.ScreenshotsPath,
 	)
 	if err != nil {
@@ -158,7 +159,7 @@ func initBrowserContext(execPath string, headless bool) (context.Context, contex
 	return ctx, cancelFunc
 }
 
-func login(ctx context.Context, username, password string, screenshotsPath string) error {
+func login(ctx context.Context, username, password, companyID string, screenshotsPath string) error {
 	screenshotsData := make([][]byte, 100)
 	defer func() {
 		err := saveScreenshots(screenshotsPath, "login", screenshotsData)
@@ -173,36 +174,136 @@ func login(ctx context.Context, username, password string, screenshotsPath strin
 		Name: browser.PermissionTypeGeolocation.String(),
 	}
 
+	loginURL := "https://accounts.zoho.eu/signin?servicename=zohopeople"
+	dashboardURL := fmt.Sprintf("https://people.zoho.eu/%s/zp#home/dashboard", companyID)
+
 	err := chromedp.Run(ctx,
-		browser.SetPermission(&geolocationPermissionDescriptor, browser.PermissionSettingDenied),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			err := browser.SetPermission(&geolocationPermissionDescriptor, browser.PermissionSettingDenied).Do(ctx)
+			if err != nil {
+				return err
+			}
 
-		chromedp.Navigate("https://accounts.zoho.eu/signin?servicename=zohopeople"),
-		chromedp.CaptureScreenshot(&screenshotsData[0]),
+			// Navigate to login page
+			err = chromedp.Navigate(loginURL).Do(ctx)
+			if err != nil {
+				return err
+			}
 
-		// Pick sign-in method
-		chromedp.Click("span[title='Sign in using Microsoft']", chromedp.NodeVisible),
+			log.Println("Login: login page loaded")
 
-		// Put username
-		chromedp.SetValue("#i0116", username, chromedp.NodeVisible),
-		chromedp.Sleep(5*time.Second),
-		chromedp.CaptureScreenshot(&screenshotsData[1]),
-		chromedp.Click("#idSIButton9", chromedp.NodeVisible),
+			err = chromedp.CaptureScreenshot(&screenshotsData[0]).Do(ctx)
+			if err != nil {
+				return err
+			}
 
-		// Put password
-		chromedp.SetValue("#i0118", password, chromedp.NodeVisible),
-		chromedp.Sleep(5*time.Second),
-		chromedp.CaptureScreenshot(&screenshotsData[2]),
-		chromedp.Click("#idSIButton9", chromedp.NodeVisible),
+			// Select sign-in method
+			err = chromedp.Click("span[title='Sign in using Microsoft']", chromedp.NodeVisible).Do(ctx)
+			if err != nil {
+				return err
+			}
 
-		// Confirm stay signed-in
-		chromedp.Sleep(5*time.Second),
-		chromedp.CaptureScreenshot(&screenshotsData[3]),
-		chromedp.Click("#idSIButton9", chromedp.NodeVisible),
+			log.Println("Login: sign-in method selected")
 
-		// Wait for redirect
-		chromedp.WaitReady("body"),
-		chromedp.Sleep(5*time.Second),
-		chromedp.CaptureScreenshot(&screenshotsData[4]),
+			// Enter username
+			err = chromedp.SetValue("#i0116", username, chromedp.NodeVisible).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.Sleep(5 * time.Second).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.CaptureScreenshot(&screenshotsData[1]).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.Click("#idSIButton9", chromedp.NodeVisible).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			log.Println("Login: username entered")
+
+			// Put password
+			err = chromedp.SetValue("#i0118", password, chromedp.NodeVisible).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.Sleep(5 * time.Second).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.CaptureScreenshot(&screenshotsData[2]).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.Click("#idSIButton9", chromedp.NodeVisible).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			log.Println("Login: password entered")
+
+			// Confirm stay signed-in
+			err = chromedp.Sleep(5 * time.Second).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.CaptureScreenshot(&screenshotsData[3]).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.Click("#idSIButton9", chromedp.NodeVisible).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			log.Println("Login: stay signed-in choice confirmed")
+
+			// Wait for redirect
+			err = chromedp.WaitReady("body").Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			// Navigate to dashboard
+			err = chromedp.Navigate(dashboardURL).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			log.Println("Login: dashboard page loaded")
+
+			err = chromedp.Sleep(5 * time.Second).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = chromedp.CaptureScreenshot(&screenshotsData[4]).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			// Wait for profile image
+			err = chromedp.WaitVisible("#zpeople_userimage").Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			log.Println("Login: profile image loaded")
+			log.Println("Login: logged in")
+
+			return nil
+		}),
 	)
 	if err != nil {
 		return err
@@ -224,21 +325,22 @@ func checkIn(ctx context.Context, companyID string, screenshotsPath string) erro
 
 	log.Println("Check-in: started")
 
+	geolocationPermissionDescriptor := browser.PermissionDescriptor{
+		Name: browser.PermissionTypeGeolocation.String(),
+	}
+
 	attendanceURL := fmt.Sprintf("https://people.zoho.eu/%s/zp#attendance/entry/listview", companyID)
 
 	err := chromedp.Run(ctx,
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			var checkInButtonHTML string
 
-			geolocationPermissionDescriptor := browser.PermissionDescriptor{
-				Name: browser.PermissionTypeGeolocation.String(),
-			}
-
 			err := browser.SetPermission(&geolocationPermissionDescriptor, browser.PermissionSettingDenied).Do(ctx)
 			if err != nil {
 				return err
 			}
 
+			// Navigate to attendance page
 			err = chromedp.Navigate(attendanceURL).Do(ctx)
 			if err != nil {
 				return err
@@ -251,12 +353,12 @@ func checkIn(ctx context.Context, companyID string, screenshotsPath string) erro
 				return err
 			}
 
-			// **************************************
 			err = chromedp.CaptureScreenshot(&screenshotsData[0]).Do(ctx)
 			if err != nil {
 				return err
 			}
 
+			// Parse check-in state
 			err = chromedp.OuterHTML("#ZPAtt_check_in_out", &checkInButtonHTML, chromedp.NodeVisible).Do(ctx)
 			if err != nil {
 				return err
@@ -275,7 +377,7 @@ func checkIn(ctx context.Context, companyID string, screenshotsPath string) erro
 				return nil
 			}
 
-			// **************************************
+			// Check-in
 			err = chromedp.Click("#ZPAtt_check_in_out", chromedp.NodeVisible).Do(ctx)
 			if err != nil {
 				return err
@@ -424,13 +526,54 @@ func initConfig() (Config, error) {
 		}
 	}
 
-	flag.StringVar(&config.Browser.ExecPath, "e", config.Browser.ExecPath, "Chrome executable path")
-	flag.StringVar(&config.Browser.ScreenshotsPath, "s", config.Browser.ScreenshotsPath, "Screenshots path")
-	flag.BoolVar(&config.Browser.Headless, "h", config.Browser.Headless, "Headless mode")
-	flag.StringVar(&config.Zoho.Username, "u", config.Zoho.Username, "Zoho username")
-	flag.StringVar(&config.Zoho.Password, "p", config.Zoho.Password, "Zoho password")
-	flag.StringVar(&config.Zoho.CompanyID, "c", config.Zoho.CompanyID, "Zoho company identifier")
-	flag.StringVar(&config.Schedule, "x", config.Schedule, "Schedule of check-in launches (CRON format, UTC time)")
+	flag.StringVar(
+		&config.Browser.ExecPath,
+		"e",
+		config.Browser.ExecPath,
+		"Chrome executable path",
+	)
+
+	flag.StringVar(
+		&config.Browser.ScreenshotsPath,
+		"s",
+		config.Browser.ScreenshotsPath,
+		"Screenshots path",
+	)
+
+	flag.BoolVar(
+		&config.Browser.Headless,
+		"h",
+		config.Browser.Headless,
+		"Headless mode",
+	)
+
+	flag.StringVar(
+		&config.Zoho.Username,
+		"u",
+		config.Zoho.Username,
+		"Zoho username",
+	)
+
+	flag.StringVar(
+		&config.Zoho.Password,
+		"p",
+		config.Zoho.Password,
+		"Zoho password",
+	)
+
+	flag.StringVar(
+		&config.Zoho.CompanyID,
+		"c",
+		config.Zoho.CompanyID,
+		"Zoho company identifier",
+	)
+
+	flag.StringVar(
+		&config.Schedule,
+		"x",
+		config.Schedule,
+		"Schedule of check-in launches using CRON format and UTC time",
+	)
 
 	flag.Parse()
 
