@@ -12,7 +12,10 @@ build:
 .PHONY: push
 push:
 	@docker login -u "${DOCKER_LOGIN}" -p "${DOCKER_PASSWORD}"
-	@docker push kpeu3i/zpcheckin
+	@docker image tag kpeu3i/zpcheckin kpeu3i/zpcheckin:${t}
+	@docker image tag kpeu3i/zpcheckin kpeu3i/zpcheckin:latest
+	@docker push kpeu3i/zpcheckin:${t}
+	@docker push kpeu3i/zpcheckin:latest
 	@docker logout 2>/dev/null || true
 
 .PHONY: release
