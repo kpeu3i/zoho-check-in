@@ -197,6 +197,19 @@ func login(ctx context.Context, username, password, companyID string, screenshot
 				return err
 			}
 
+			// Load sign-in methods page
+			err = chromedp.Click(".fed_2show_small", chromedp.NodeVisible).Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			log.Println("Login: sign-in methods loaded")
+
+			err = chromedp.CaptureScreenshot(&screenshotsData[1]).Do(ctx)
+			if err != nil {
+				return err
+			}
+
 			// Select sign-in method
 			err = chromedp.Click("span[title='Sign in using Microsoft']", chromedp.NodeVisible).Do(ctx)
 			if err != nil {
@@ -216,7 +229,7 @@ func login(ctx context.Context, username, password, companyID string, screenshot
 				return err
 			}
 
-			err = chromedp.CaptureScreenshot(&screenshotsData[1]).Do(ctx)
+			err = chromedp.CaptureScreenshot(&screenshotsData[2]).Do(ctx)
 			if err != nil {
 				return err
 			}
@@ -239,7 +252,7 @@ func login(ctx context.Context, username, password, companyID string, screenshot
 				return err
 			}
 
-			err = chromedp.CaptureScreenshot(&screenshotsData[2]).Do(ctx)
+			err = chromedp.CaptureScreenshot(&screenshotsData[3]).Do(ctx)
 			if err != nil {
 				return err
 			}
@@ -257,7 +270,7 @@ func login(ctx context.Context, username, password, companyID string, screenshot
 				return err
 			}
 
-			err = chromedp.CaptureScreenshot(&screenshotsData[3]).Do(ctx)
+			err = chromedp.CaptureScreenshot(&screenshotsData[4]).Do(ctx)
 			if err != nil {
 				return err
 			}
@@ -288,7 +301,7 @@ func login(ctx context.Context, username, password, companyID string, screenshot
 				return err
 			}
 
-			err = chromedp.CaptureScreenshot(&screenshotsData[4]).Do(ctx)
+			err = chromedp.CaptureScreenshot(&screenshotsData[5]).Do(ctx)
 			if err != nil {
 				return err
 			}
